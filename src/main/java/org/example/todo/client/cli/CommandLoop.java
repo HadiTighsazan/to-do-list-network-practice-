@@ -2,31 +2,33 @@ package org.example.todo.client.cli;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import org.example.todo.client.api.ClientApi;
 import org.example.todo.client.app.ClientState;
-import org.example.todo.client.net.TcpClient;
+import org.example.todo.client.net.PushNotificationListener;
 import org.example.todo.client.net.UdpListener;
 
 import java.util.*;
 
 import static org.example.todo.client.protocol.ProtocolJson.GSON;
 
-public class CommandLoop implements Runnable {
+public class CommandLoop implements Runnable, PushNotificationListener {
     private final Scanner scanner = new Scanner(System.in);
-    private final TcpClient client;
+    private final ClientApi api;
     private final ClientState state;
     private final UdpListener udp;
 
-    public CommandLoop(TcpClient client, ClientState state, UdpListener udp) {
-        this.client = client; this.state = state; this.udp = udp;
+    public CommandLoop(ClientApi api, ClientState state, UdpListener udp) {
+        this.api = api; this.state = state; this.udp = udp;
+        this.udp.addListener(this);
     }
 
     @Override
     public void run() {
         printHelp();
         while (true) {
-            String prompt = state.getCurrentBoard().map(b -> "todo["+b+"]> ").orElse("todo> ");
+            String prompt = state.getCurrentBoard().map(b -> "todo["+b.substring(0, 8)+"]> ").orElse("todo> ");
             System.out.print(prompt);
-            String line = null;
+            String line;
             try { if (!scanner.hasNextLine()) break; line = scanner.nextLine(); } catch (Exception e) { break; }
             line = line.trim(); if (line.isEmpty()) continue;
             List<String> args = parseArgs(line);
@@ -58,181 +60,145 @@ public class CommandLoop implements Runnable {
 
     private void doRegister(List<String> a) throws Exception {
         if (a.size() < 3) { System.out.println("usage: register <username> <password>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("username", a.get(1)); p.addProperty("password", a.get(2));
-        var env = client.sendAndAwait("register", p, null, 5000);
-        System.out.println(GSON.toJson(env));
+        var user = api.register(a.get(1), a.get(2));
+        System.out.println("User registered: " + GSON.toJson(user));
     }
 
     private void doLogin(List<String> a) throws Exception {
         if (a.size() < 3) { System.out.println("usage: login <username> <password>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("username", a.get(1)); p.addProperty("password", a.get(2));
-        var env = client.sendAndAwait("login", p, null, 5000);
-        if ("response".equals(env.type) && env.payload != null && env.payload.has("token")) { state.setToken(env.payload.get("token").getAsString()); System.out.println("logged in. token set."); }
-        else System.out.println(GSON.toJson(env));
+        var loginResponse = api.login(a.get(1), a.get(2));
+        System.out.println("logged in. user: " + loginResponse.user.username);
     }
 
     private void doLogout() throws Exception {
-        var tokenOpt = state.getToken(); if (tokenOpt.isEmpty()) { System.out.println("not logged in."); return; }
-        var env = client.sendAndAwait("logout", new JsonObject(), tokenOpt.get(), 5000);
-        if ("response".equals(env.type)) { state.clearToken(); state.clearCurrentBoard(); System.out.println("logged out."); }
-        else System.out.println(GSON.toJson(env));
+        if (state.getToken().isEmpty()) { System.out.println("not logged in."); return; }
+        api.logout();
+        System.out.println("logged out.");
     }
 
     private void doCreateBoard(List<String> a) throws Exception {
-        var tok = state.getToken(); if (tok.isEmpty()) { System.out.println("not logged in."); return; }
         if (a.size() < 2) { System.out.println("usage: create_board <name>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("name", a.get(1));
-        var env = client.sendAndAwait("create_board", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        var board = api.createBoard(a.get(1));
+        System.out.println("board created: " + GSON.toJson(board));
     }
 
     private void doListBoards() throws Exception {
-        var tok = state.getToken(); if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        var env = client.sendAndAwait("list_boards", new JsonObject(), tok.get(), 5000);
-        if ("response".equals(env.type)) {
-            var boards = env.payload.getAsJsonArray("boards");
-            System.out.println("boards:");
-            for (int i=0;i<boards.size();i++) {
-                var b = boards.get(i).getAsJsonObject();
-                System.out.printf("- %s | %s | role=%s | owner=%s | createdAt=%d%n",
-                        b.get("id").getAsString(), b.get("name").getAsString(), b.get("role").getAsString(),
-                        b.get("ownerId").getAsString(), b.get("createdAt").getAsLong());
-            }
-        } else System.out.println(GSON.toJson(env));
+        var resp = api.listBoards();
+        System.out.println("boards:");
+        for (var b : resp.boards) {
+            System.out.printf("- %s | %s | role=%s | owner=%s | createdAt=%d%n",
+                    b.id, b.name, b.role, b.ownerId, b.createdAt);
+        }
     }
 
     private void doAddUserToBoard(List<String> a) throws Exception {
-        var tok = state.getToken(); if (tok.isEmpty()) { System.out.println("not logged in."); return; }
         if (a.size() < 3) { System.out.println("usage: add_user_to_board <boardId> <userId>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("boardId", a.get(1)); p.addProperty("userId", a.get(2));
-        var env = client.sendAndAwait("add_user_to_board", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        api.addUserToBoard(a.get(1), a.get(2));
+        System.out.println("user added to board.");
     }
 
     private void doViewBoard(List<String> a) throws Exception {
-        var tok = state.getToken(); if (tok.isEmpty()) { System.out.println("not logged in."); return; }
         if (a.size() < 2) { System.out.println("usage: view_board <boardId>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("boardId", a.get(1));
-        var env = client.sendAndAwait("view_board", p, tok.get(), 5000);
-        if ("response".equals(env.type)) {
-            var b = env.payload.getAsJsonObject("board");
-            String boardId = b.get("id").getAsString();
-            state.setCurrentBoard(boardId);
-            System.out.printf("Board %s (%s) role=%s owner=%s%n", boardId, b.get("name").getAsString(), b.get("role").getAsString(), b.get("ownerId").getAsString());
-            var mems = env.payload.getAsJsonArray("members");
-            System.out.println("members:");
-            for (int i=0;i<mems.size();i++) {
-                var m = mems.get(i).getAsJsonObject();
-                System.out.printf("- %s (%s) role=%s%n", m.get("userId").getAsString(), m.get("username").getAsString(), m.get("role").getAsString());
-            }
-            System.out.println("(entered board mode: " + boardId + ")");
-            // auto-subscribe for push
-            autoSubscribe(boardId);
-        } else System.out.println(GSON.toJson(env));
+        var resp = api.viewBoard(a.get(1));
+        var b = resp.board;
+        String boardId = b.id;
+        state.setCurrentBoard(boardId);
+        System.out.printf("Board %s (%s) role=%s owner=%s%n", boardId, b.name, b.role, b.ownerId);
+        System.out.println("members:");
+        for (var m : resp.members) {
+            System.out.printf("- %s (%s) role=%s%n", m.userId, m.username, m.role);
+        }
+        System.out.println("(entered board mode: " + boardId + ")");
+        autoSubscribe(boardId);
     }
 
     private void autoSubscribe(String boardId) throws Exception {
-        var tok = state.getToken(); if (tok.isEmpty()) return;
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardId); p.addProperty("udpPort", udp.getLocalPort());
-        var env = client.sendAndAwait("subscribe_board", p, tok.get(), 5000);
-        if ("response".equals(env.type)) System.out.println("subscribed for push on board " + boardId + " via UDP:" + udp.getLocalPort());
-        else System.out.println(GSON.toJson(env));
+        api.subscribeToBoard(boardId, udp.getLocalPort());
+        System.out.println("subscribed for push on board " + boardId + " via UDP:" + udp.getLocalPort());
     }
     private void doSubscribe(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        String boardId = a.size() >= 2 ? a.get(1) : boardOpt.orElse(null);
-        if (boardId == null) { System.out.println("usage: subscribe_board <boardId>"); return; }
+        String boardId = a.size() >= 2 ? a.get(1) : state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("usage: subscribe_board <boardId> (or view a board first)"); return; }
         autoSubscribe(boardId);
     }
     private void doUnsubscribe(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        String boardId = a.size() >= 2 ? a.get(1) : boardOpt.orElse(null);
-        if (boardId == null) { System.out.println("usage: unsubscribe_board <boardId>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardId); p.addProperty("udpPort", udp.getLocalPort());
-        var env = client.sendAndAwait("unsubscribe_board", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        String boardId = a.size() >= 2 ? a.get(1) : state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("usage: unsubscribe_board <boardId> (or view a board first)"); return; }
+        api.unsubscribeFromBoard(boardId, udp.getLocalPort());
+        System.out.println("unsubscribed from board " + boardId);
     }
 
     private void doAddTask(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        if (boardOpt.isEmpty()) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
+        var boardId = state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
         if (a.size() < 4) { System.out.println("usage: add_task \"<title>\" \"<desc>\" <low|medium|high> [dueMillis]"); return; }
-        JsonObject p = new JsonObject();
-        p.addProperty("boardId", boardOpt.get());
-        p.addProperty("title", a.get(1));
-        p.addProperty("description", a.get(2));
-        p.addProperty("priority", a.get(3));
-        if (a.size() >= 5) try { p.addProperty("dueDate", Long.parseLong(a.get(4))); } catch (NumberFormatException ignore) {}
-        var env = client.sendAndAwait("add_task", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        Long dueDate = a.size() >= 5 ? Long.parseLong(a.get(4)) : null;
+        var task = api.addTask(boardId, a.get(1), a.get(2), a.get(3), dueDate);
+        System.out.println("task added: " + GSON.toJson(task));
     }
 
     private void doListTasks(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        if (boardOpt.isEmpty()) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
+        var boardId = state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
+
         Map<String,String> kv = parseKeyValues(a.subList(1, a.size()));
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardOpt.get());
         JsonObject filters = new JsonObject();
         if (kv.containsKey("status")) { JsonArray arr = new JsonArray(); for (String s : kv.get("status").split(",")) arr.add(s.trim()); filters.add("status", arr);}
         if (kv.containsKey("priority")) { JsonArray arr = new JsonArray(); for (String s : kv.get("priority").split(",")) arr.add(s.trim()); filters.add("priority", arr);}
         if (kv.containsKey("dueBefore")) { try { filters.addProperty("dueBefore", Long.parseLong(kv.get("dueBefore"))); } catch (Exception ignore) {} }
         if (kv.containsKey("dueAfter"))  { try { filters.addProperty("dueAfter",  Long.parseLong(kv.get("dueAfter")));  } catch (Exception ignore) {} }
-        if (filters.entrySet().size() > 0) p.add("filters", filters);
+
         JsonObject sort = new JsonObject();
         if (kv.containsKey("by"))    sort.addProperty("by", kv.get("by"));
         if (kv.containsKey("order")) sort.addProperty("order", kv.get("order"));
-        if (sort.entrySet().size() > 0) p.add("sort", sort);
-        var env = client.sendAndAwait("list_tasks", p, tok.get(), 5000);
-        if ("response".equals(env.type)) {
-            var tasks = env.payload.getAsJsonArray("tasks");
-            System.out.println("tasks:");
-            for (int i=0;i<tasks.size();i++) {
-                var t = tasks.get(i).getAsJsonObject();
-                String dueStr = (t.has("dueDate") && !t.get("dueDate").isJsonNull()) ? String.valueOf(t.get("dueDate").getAsLong()) : "-";
-                System.out.printf("- %s | %s | %s | pr=%s | due=%s | created=%d%n",
-                        t.get("id").getAsString(), t.get("title").getAsString(), t.get("status").getAsString(),
-                        t.get("priority").getAsString(), dueStr, t.get("createdAt").getAsLong());
-            }
-        } else System.out.println(GSON.toJson(env));
+
+        var resp = api.listTasks(boardId, filters, sort);
+        System.out.println("tasks:");
+        for (var t : resp.tasks) {
+            String dueStr = (t.dueDate != null) ? String.valueOf(t.dueDate) : "-";
+            System.out.printf("- %s | %s | %s | pr=%s | due=%s | created=%d%n",
+                    t.id, t.title, t.status, t.priority, dueStr, t.createdAt);
+        }
     }
 
     private void doUpdateTaskStatus(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        if (boardOpt.isEmpty()) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
+        var boardId = state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
         if (a.size() < 3) { System.out.println("usage: update_task_status <taskId> <todo|inProgress|done>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardOpt.get()); p.addProperty("taskId", a.get(1)); p.addProperty("newStatus", a.get(2));
-        var env = client.sendAndAwait("update_task_status", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        var task = api.updateTaskStatus(boardId, a.get(1), a.get(2));
+        System.out.println("task updated: " + GSON.toJson(task));
     }
 
     private void doDeleteTask(List<String> a) throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty()) { System.out.println("not logged in."); return; }
-        if (boardOpt.isEmpty()) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
+        var boardId = state.getCurrentBoard().orElse(null);
+        if (boardId == null) { System.out.println("not in board mode. run: view_board <boardId>"); return; }
         if (a.size() < 2) { System.out.println("usage: delete_task <taskId>"); return; }
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardOpt.get()); p.addProperty("taskId", a.get(1));
-        var env = client.sendAndAwait("delete_task", p, tok.get(), 5000);
-        System.out.println(GSON.toJson(env));
+        api.deleteTask(boardId, a.get(1));
+        System.out.println("task deleted.");
     }
 
-    private void doAutoUnsubscribe() throws Exception {
-        var tok = state.getToken(); var boardOpt = state.getCurrentBoard();
-        if (tok.isEmpty() || boardOpt.isEmpty()) return;
-        JsonObject p = new JsonObject(); p.addProperty("boardId", boardOpt.get()); p.addProperty("udpPort", udp.getLocalPort());
-        client.sendAndAwait("unsubscribe_board", p, tok.get(), 3000);
-        state.clearCurrentBoard();
+    private void doAutoUnsubscribe() {
+        try {
+            var boardOpt = state.getCurrentBoard();
+            if (state.getToken().isEmpty() || boardOpt.isEmpty()) return;
+            api.unsubscribeFromBoard(boardOpt.get(), udp.getLocalPort());
+            state.clearCurrentBoard();
+        } catch (Exception e) {
+            // Ignore on exit
+        }
+    }
+
+    @Override
+    public void onPushNotification(JsonObject payload) {
+        System.out.println("\n[PUSH NOTIFICATION]: " + GSON.toJson(payload));
+        String prompt = state.getCurrentBoard().map(b -> "todo["+b.substring(0, 8)+"]> ").orElse("todo> ");
+        System.out.print(prompt);
     }
 
     private static void printHelp() {
         System.out.println("commands:\n  register <u> <p>\n  login <u> <p>\n  logout\n  create_board <name>\n  list_boards\n  add_user_to_board <boardId> <userId>\n  view_board <boardId>\n  subscribe_board [boardId]\n  unsubscribe_board [boardId]\n\n  add_task \"<title>\" \"<desc>\" <low|medium|high> [dueMillis]\n  list_tasks [by=createdAt|due|priority] [order=asc|desc] [status=...] [priority=...] [dueBefore=ms] [dueAfter=ms]\n  update_task_status <taskId> <todo|inProgress|done>\n  delete_task <taskId>\n  help\n  exit");
     }
 
-    // simple args parser with quotes support
     private static List<String> parseArgs(String line) {
         List<String> out = new ArrayList<>();
         boolean inQuote = false; StringBuilder cur = new StringBuilder();

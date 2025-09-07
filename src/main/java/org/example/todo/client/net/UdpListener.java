@@ -7,15 +7,27 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class UdpListener implements Runnable, Closeable {
     private final DatagramSocket socket;
     private volatile boolean running = true;
+    private final List<PushNotificationListener> listeners = new CopyOnWriteArrayList<>();
+
 
     public UdpListener() throws SocketException {
         this.socket = new DatagramSocket(0);
         this.socket.setSoTimeout(1000);
         System.out.println("[UDP] Listener bound on port " + socket.getLocalPort());
+    }
+
+    public void addListener(PushNotificationListener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(PushNotificationListener listener) {
+        listeners.remove(listener);
     }
 
     public int getLocalPort() {
@@ -50,46 +62,13 @@ public class UdpListener implements Runnable, Closeable {
             if (!obj.has("type") || !"push".equals(obj.get("type").getAsString())) {
                 return;
             }
-
-            String event = obj.has("event") ? obj.get("event").getAsString() : "?";
-            String boardId = obj.has("boardId") ? obj.get("boardId").getAsString() : "?";
-
-            System.out.println("\n════════════════════════════════════════");
-            System.out.println("[PUSH NOTIFICATION] Event: " + event);
-            System.out.println("Board: " + boardId);
-
-            if (obj.has("actorUserId")) {
-                System.out.println("By User: " + obj.get("actorUserId").getAsString());
+            // Notify all registered listeners
+            for (PushNotificationListener listener : listeners) {
+                listener.onPushNotification(obj);
             }
-
-            if (obj.has("task")) {
-                var t = obj.getAsJsonObject("task");
-                System.out.println("Task Details:");
-                if (t.has("id")) System.out.println("  ID: " + t.get("id").getAsString());
-                if (t.has("title")) System.out.println("  Title: " + t.get("title").getAsString());
-                if (t.has("status")) System.out.println("  Status: " + t.get("status").getAsString());
-                if (t.has("priority")) System.out.println("  Priority: " + t.get("priority").getAsString());
-
-                String dueStr = (t.has("dueDate") && !t.get("dueDate").isJsonNull())
-                        ? new java.util.Date(t.get("dueDate").getAsLong()).toString()
-                        : "Not set";
-                System.out.println("  Due: " + dueStr);
-            }
-
-            if (obj.has("member")) {
-                var m = obj.getAsJsonObject("member");
-                System.out.printf("Member Details:\n  %s (%s) - Role: %s%n",
-                        m.get("userId").getAsString(),
-                        m.get("username").getAsString(),
-                        m.get("role").getAsString());
-            }
-
-            System.out.println("════════════════════════════════════════");
-            System.out.print("todo> ");
 
         } catch (Exception e) {
-            System.out.println("\n[UDP PUSH - Raw]: " + json);
-            System.out.print("todo> ");
+            System.err.println("[UDP] Error parsing push notification: " + json);
         }
     }
 
