@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="true" type="Application" factoryName="Application" singleton="false">
+    <option name="MAIN_CLASS_NAME" value="org.example.todo.client.app.ClientMain" />
+    <module name="hw5" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
