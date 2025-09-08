@@ -23,12 +23,16 @@ public class ClientApi {
         this.clientState = clientState;
     }
 
-    public UserView register(String username, String password) throws Exception {
+    public LoginResponse register(String username, String password) throws Exception {
         JsonObject p = new JsonObject();
         p.addProperty("username", username);
         p.addProperty("password", password);
         TcpClient.Env response = send("register", p, false);
-        return GSON.fromJson(response.payload.get("user"), UserView.class);
+        // --- START OF CHANGES ---
+        LoginResponse loginResponse = GSON.fromJson(response.payload, LoginResponse.class);
+        clientState.setToken(loginResponse.token);
+        return loginResponse;
+        // --- END OF CHANGES ---
     }
 
     public LoginResponse login(String username, String password) throws Exception {

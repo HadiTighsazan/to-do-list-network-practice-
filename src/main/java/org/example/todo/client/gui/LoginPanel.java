@@ -1,6 +1,7 @@
 package org.example.todo.client.gui;
 
 import org.example.todo.client.api.ClientApi;
+import org.example.todo.server.protocol.LoginResponse;
 
 import javax.swing.*;
 import java.awt.*;
@@ -129,24 +130,21 @@ public class LoginPanel extends JPanel {
         statusLabel.setText("Registering...");
         setUIEnabled(false);
 
-        new SwingWorker<Void, Void>() {
+        // --- START OF CHANGES ---
+        new SwingWorker<LoginResponse, Void>() {
             @Override
-            protected Void doInBackground() throws Exception {
-                api.register(username, new String(password));
-                return null;
+            protected LoginResponse doInBackground() throws Exception {
+                return api.register(username, new String(password));
             }
 
             @Override
             protected void done() {
                 try {
                     get();
-                    statusLabel.setText("Registration successful. Please login.");
-                    JOptionPane.showMessageDialog(mainFrame, "Registration successful! You can now log in.", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    // FIX: Clear fields after successful registration for better UX
-                    usernameField.setText("");
+                    statusLabel.setText("Registration successful! Logging in...");
+                    mainFrame.showDashboard();
                 } catch (Exception ex) {
                     statusLabel.setText("Registration failed.");
-                    // Check for cause, as the primary exception is from SwingWorker
                     String errorMessage = (ex.getCause() != null) ? ex.getCause().getMessage() : ex.getMessage();
                     JOptionPane.showMessageDialog(mainFrame, "Registration failed: " + errorMessage, "Registration Error", JOptionPane.ERROR_MESSAGE);
                 } finally {
@@ -155,5 +153,4 @@ public class LoginPanel extends JPanel {
                 }
             }
         }.execute();
-    }
-}
+    }}

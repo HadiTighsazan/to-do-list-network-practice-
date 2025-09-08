@@ -99,11 +99,15 @@ public class TcpClientHandler implements Runnable {
         RegisterRequest req = GSON.fromJson(env.payload, RegisterRequest.class);
         if (req == null || req.username == null || req.password == null)
             throw new AppException("VALIDATION_ERROR", "username/password required");
-        User u = userService.register(req.username, req.password.toCharArray());
-        var view = new UserView(u.getId(), u.getUsername(), u.getCreatedAt());
-        JsonObject payload = new JsonObject();
-        payload.add("user", GSON.toJsonTree(view));
-        return ok(env, payload);
+
+        // --- START OF CHANGES ---
+        var regResult = userService.register(req.username, req.password.toCharArray());
+        LoginResponse resp = new LoginResponse();
+        resp.token = regResult.token();
+        resp.expiresAt = regResult.expiresAt();
+        resp.user = new UserView(regResult.user().getId(), regResult.user().getUsername(), regResult.user().getCreatedAt());
+        return ok(env, GSON.toJsonTree(resp).getAsJsonObject());
+        // --- END OF CHANGES ---
     }
 
     private Envelope handleLogin(Envelope env) throws SQLException {

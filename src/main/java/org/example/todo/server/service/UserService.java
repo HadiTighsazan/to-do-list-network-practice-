@@ -41,7 +41,7 @@ public class UserService {
         this.sessions = Objects.requireNonNull(sessions);
     }
 
-    public User register(String username, char[] password) throws SQLException {
+    public LoginResult register(String username, char[] password) throws SQLException {
         if (username == null || username.isBlank()) throw AppException.validation("نام کاربری خالی است");
         if (password == null || password.length < 4) throw AppException.validation("طول رمز عبور کم است");
         Optional<User> existing = users.findByUsername(username);
@@ -54,7 +54,15 @@ public class UserService {
                 PasswordHasher.toBase64(hash), PasswordHasher.toBase64(salt));
         users.insert(u);
         log.info("User registered: {}", username);
-        return u;
+
+        // --- START OF CHANGES ---
+        // Automatically log the user in after registration
+        long exp = now + config.getTokenTtl().toMillis();
+        String token = jwt.createToken(u.getId(), u.getUsername(), now, exp);
+        String jti = jwt.getJti(token);
+        sessions.insert(new Session(jti, u.getId(), exp, now));
+        return new LoginResult(token, u, exp);
+        // --- END OF CHANGES ---
     }
 
     public LoginResult login(String username, char[] password) throws SQLException {
@@ -75,7 +83,11 @@ public class UserService {
     }
 
     public void logout(String token) throws SQLException {
-        String jti = jwt.getJti(token);
-        sessions.deleteByJti(jti);
+        try {
+            String jti = jwt.getJti(token);
+            sessions.deleteByJti(jti);
+        } catch (IllegalArgumentException e) {
+            log.warn("Could not parse JTI from token on logout.");
+        }
     }
 }
