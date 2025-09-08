@@ -83,6 +83,8 @@ public class TcpClientHandler implements Runnable {
             case "list_boards" -> handleListBoards(env);
             case "add_user_to_board" -> handleAddUserToBoard(env);
             case "view_board" -> handleViewBoard(env);
+
+            case "delete_board" -> handleDeleteBoard(env);
             // tasks
             case "add_task" -> handleAddTask(env);
             case "list_tasks" -> handleListTasks(env);
@@ -91,6 +93,7 @@ public class TcpClientHandler implements Runnable {
             // push
             case "subscribe_board" -> handleSubscribeBoard(env);
             case "unsubscribe_board" -> handleUnsubscribeBoard(env);
+
             default -> throw new AppException("VALIDATION_ERROR", "Unknown action: " + action);
         };
     }
@@ -109,7 +112,15 @@ public class TcpClientHandler implements Runnable {
         return ok(env, GSON.toJsonTree(resp).getAsJsonObject());
         // --- END OF CHANGES ---
     }
-
+    private Envelope handleDeleteBoard(Envelope env) throws SQLException {
+        var ac = authService.authenticate(requireToken(env));
+        DeleteBoardRequest req = GSON.fromJson(env.payload, DeleteBoardRequest.class);
+        if (req == null || req.boardId == null) {
+            throw new AppException("VALIDATION_ERROR", "boardId required");
+        }
+        boardService.deleteBoard(ac.userId, req.boardId);
+        return ok(env, GSON.toJsonTree(new AckResponse("board deleted")).getAsJsonObject());
+    }
     private Envelope handleLogin(Envelope env) throws SQLException {
         LoginRequest req = GSON.fromJson(env.payload, LoginRequest.class);
         if (req == null || req.username == null || req.password == null)

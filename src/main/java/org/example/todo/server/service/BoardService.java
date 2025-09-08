@@ -50,7 +50,18 @@ public class BoardService {
         }
         return b;
     }
-
+    public void deleteBoard(String requesterId, String boardId) throws SQLException {
+        Board b = boards.findById(boardId).orElseThrow(() -> AppException.validation("بورد مورد نظر وجود ندارد"));
+        if (!b.getOwnerId().equals(requesterId)) {
+            throw AppException.auth("دسترسی غیرمجاز: فقط مالک می‌تواند بورد را حذف کند");
+        }
+        boards.delete(boardId);
+        // Note: Associated members and tasks are deleted automatically by the database
+        // thanks to "ON DELETE CASCADE" in the schema.
+        if (push != null) {
+            // Optional: You could implement a push notification for board deletion if needed.
+        }
+    }
     public static class BoardView {
         public final String id; public final String name; public final String ownerId; public final long createdAt; public final String role;
         public BoardView(String id, String name, String ownerId, long createdAt, String role) {

@@ -1,5 +1,7 @@
 package org.example.todo.client.gui;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.example.todo.client.api.ClientApi;
 import org.example.todo.client.app.ClientState;
 import org.example.todo.server.protocol.BoardMemberView;
@@ -21,6 +23,12 @@ public class BoardViewPanel extends JPanel {
     private final JList<TaskView> taskList = new JList<>(taskListModel);
     private final DefaultListModel<BoardMemberView> memberListModel = new DefaultListModel<>();
     private final JList<BoardMemberView> memberList = new JList<>(memberListModel);
+
+    // --- START OF CHANGES ---
+    private final JComboBox<String> sortBox = new JComboBox<>(new String[]{"Creation Date", "Due Date", "Priority"});
+    private final JComboBox<String> orderBox = new JComboBox<>(new String[]{"Ascending", "Descending"});
+    private final JComboBox<String> statusFilterBox = new JComboBox<>(new String[]{"All Statuses", "Todo", "In Progress", "Done"});
+    // --- END OF CHANGES ---
 
     public BoardViewPanel(MainFrame mainFrame, ClientApi api, ClientState state) {
         this.mainFrame = mainFrame;
@@ -45,7 +53,24 @@ public class BoardViewPanel extends JPanel {
 
         // Tasks Panel
         JPanel tasksPanel = new JPanel(new BorderLayout(5, 5));
-        tasksPanel.add(new JLabel("Tasks"), BorderLayout.NORTH);
+
+        // --- START OF CHANGES ---
+        // Filters and Sort Controls Panel
+        JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controlsPanel.add(new JLabel("Filter by Status:"));
+        controlsPanel.add(statusFilterBox);
+        controlsPanel.add(new JLabel("Sort by:"));
+        controlsPanel.add(sortBox);
+        controlsPanel.add(orderBox);
+        JButton applyFiltersButton = new JButton("Apply");
+        controlsPanel.add(applyFiltersButton);
+
+        JPanel tasksHeaderPanel = new JPanel(new BorderLayout());
+        tasksHeaderPanel.add(new JLabel("Tasks"), BorderLayout.WEST);
+        tasksHeaderPanel.add(controlsPanel, BorderLayout.EAST);
+        tasksPanel.add(tasksHeaderPanel, BorderLayout.NORTH);
+        // --- END OF CHANGES ---
+
         taskList.setCellRenderer(new TaskRenderer());
         tasksPanel.add(new JScrollPane(taskList), BorderLayout.CENTER);
 
@@ -63,6 +88,16 @@ public class BoardViewPanel extends JPanel {
         // Members Panel
         JPanel membersPanel = new JPanel(new BorderLayout(5, 5));
         membersPanel.add(new JLabel("Members"), BorderLayout.NORTH);
+        memberList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof BoardMemberView member) {
+                    setText(String.format("<html><b>%s</b> <font color='gray'>(%s)</font></html>", member.username, member.role));
+                }
+                return this;
+            }
+        });
         membersPanel.add(new JScrollPane(memberList), BorderLayout.CENTER);
         JButton addMemberBtn = new JButton("Add Member");
         membersPanel.add(addMemberBtn, BorderLayout.SOUTH);
@@ -74,6 +109,9 @@ public class BoardViewPanel extends JPanel {
         addMemberBtn.addActionListener(e -> addMember());
         updateStatusBtn.addActionListener(e -> updateTaskStatus());
         deleteTaskBtn.addActionListener(e -> deleteTask());
+        // --- START OF CHANGES ---
+        applyFiltersButton.addActionListener(e -> loadTasks());
+        // --- END OF CHANGES ---
     }
 
     public void loadBoard(String boardId) {
@@ -83,8 +121,7 @@ public class BoardViewPanel extends JPanel {
         new SwingWorker<ViewBoardResponse, Void>() {
             @Override
             protected ViewBoardResponse doInBackground() throws Exception {
-                // Also load tasks for the board
-                api.listTasks(boardId, null, null);
+                // This call remains to get board details and members
                 return api.viewBoard(boardId);
             }
 
@@ -97,7 +134,7 @@ public class BoardViewPanel extends JPanel {
                     memberListModel.clear();
                     memberListModel.addAll(response.members);
 
-                    // Now separately load tasks
+                    // Now separately load tasks with default filters
                     loadTasks();
 
                 } catch (Exception e) {
@@ -110,10 +147,45 @@ public class BoardViewPanel extends JPanel {
 
     public void loadTasks() {
         if (currentBoardId == null) return;
+
+        // --- START OF CHANGES ---
+        // Build filter and sort objects from UI components
+        JsonObject filters = new JsonObject();
+        String selectedStatus = (String) statusFilterBox.getSelectedItem();
+        if (selectedStatus != null && !selectedStatus.equals("All Statuses")) {
+            JsonArray statusArray = new JsonArray();
+            // Convert GUI text to protocol-friendly status
+            String protocolStatus = switch (selectedStatus) {
+                case "In Progress" -> "inProgress";
+                case "Done" -> "done";
+                default -> "todo";
+            };
+            statusArray.add(protocolStatus);
+            filters.add("status", statusArray);
+        }
+
+        JsonObject sort = new JsonObject();
+        String sortBy = (String) sortBox.getSelectedItem();
+        if (sortBy != null) {
+            String protocolSortBy = switch (sortBy) {
+                case "Due Date" -> "due";
+                case "Priority" -> "priority";
+                default -> "createdAt";
+            };
+            sort.addProperty("by", protocolSortBy);
+        }
+
+        String sortOrder = (String) orderBox.getSelectedItem();
+        if (sortOrder != null) {
+            sort.addProperty("order", sortOrder.equals("Ascending") ? "asc" : "desc");
+        }
+        // --- END OF CHANGES ---
+
         new SwingWorker<List<TaskView>, Void>() {
             @Override
             protected List<TaskView> doInBackground() throws Exception {
-                return api.listTasks(currentBoardId, null, null).tasks;
+                // Pass the constructed filter and sort objects to the API
+                return api.listTasks(currentBoardId, filters, sort).tasks;
             }
             @Override
             protected void done() {

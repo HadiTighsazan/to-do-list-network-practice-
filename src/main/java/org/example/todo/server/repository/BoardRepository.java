@@ -49,7 +49,13 @@ public class BoardRepository {
             }
         }
     }
-
+    public void delete(String id) throws SQLException {
+        String sql = "DELETE FROM boards WHERE id = ?";
+        try (Connection c = dsp.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, id);
+            ps.executeUpdate();
+        }
+    }
     private Board map(ResultSet rs) throws SQLException {
         return new Board(
                 rs.getString("id"),

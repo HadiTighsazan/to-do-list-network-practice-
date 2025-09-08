@@ -69,7 +69,11 @@ public class ClientApi {
         p.addProperty("userId", userId);
         send("add_user_to_board", p, true);
     }
-
+    public void deleteBoard(String boardId) throws Exception {
+        JsonObject p = new JsonObject();
+        p.addProperty("boardId", boardId);
+        send("delete_board", p, true);
+    }
     public ViewBoardResponse viewBoard(String boardId) throws Exception {
         JsonObject p = new JsonObject();
         p.addProperty("boardId", boardId);
