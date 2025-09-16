@@ -1,10 +1,10 @@
 package org.example.todo.server.model;
 
 public class Session {
-    private String jti;       // token id
+    private String jti;
     private String userId;
-    private long expiresAt;   // epoch millis
-    private long createdAt;   // epoch millis
+    private long expiresAt;
+    private long createdAt;
 
     public Session() {}
 

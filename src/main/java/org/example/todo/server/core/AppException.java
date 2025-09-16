@@ -1,8 +1,6 @@
 package org.example.todo.server.core;
 
-/**
- * Minimal domain exception with a code. Will be mapped to protocol errors later.
- */
+
 public class AppException extends RuntimeException {
     private final String code;
 

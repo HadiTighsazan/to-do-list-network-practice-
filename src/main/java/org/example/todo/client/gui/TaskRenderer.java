@@ -19,7 +19,6 @@ public class TaskRenderer extends JPanel implements ListCellRenderer<TaskView> {
 
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         statusLabel.setOpaque(true);
-        // FIX: Use SwingConstants.CENTER instead of just CENTER
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
         statusLabel.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
 

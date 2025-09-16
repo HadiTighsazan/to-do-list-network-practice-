@@ -7,9 +7,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * Step 1: Ensures database schema exists.
- */
+
 public class SchemaMigrator {
     private static final Logger log = LoggerFactory.getLogger(SchemaMigrator.class);
 

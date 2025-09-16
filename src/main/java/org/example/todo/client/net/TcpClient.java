@@ -8,9 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.*;
 import static org.example.todo.client.protocol.ProtocolJson.GSON;
 
-/**
- * Robust TCP client with proper MessageCodec protocol matching server
- */
+
 public class TcpClient implements Closeable {
     private final Socket socket;
     private final InputStream in;
@@ -44,7 +42,6 @@ public class TcpClient implements Closeable {
                     }
                 }
 
-                // Push message or unexpected message
                 if (env != null && "push".equals(env.type)) {
                     System.out.println("\n[PUSH from TCP]: " + json);
                     System.out.print("todo> ");

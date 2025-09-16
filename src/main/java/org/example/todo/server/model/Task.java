@@ -4,9 +4,9 @@ public class Task extends BaseEntity {
     private String boardId;
     private String title;
     private String description;
-    private String status;    // TODO | IN_PROGRESS | DONE
-    private String priority;  // LOW | MEDIUM | HIGH
-    private Long dueDate;     // epoch millis, nullable
+    private String status;
+    private String priority;
+    private Long dueDate;
 
     public Task() {}
 

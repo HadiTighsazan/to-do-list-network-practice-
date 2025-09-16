@@ -9,10 +9,7 @@ import java.io.IOException;
 
 import static org.example.todo.client.protocol.ProtocolJson.GSON;
 
-/**
- * A centralized API layer for interacting with the server.
- * This decouples the UI (CLI/GUI) from the raw network communication.
- */
+
 public class ClientApi {
     private final TcpClient tcpClient;
     private final ClientState clientState;
@@ -28,11 +25,10 @@ public class ClientApi {
         p.addProperty("username", username);
         p.addProperty("password", password);
         TcpClient.Env response = send("register", p, false);
-        // --- START OF CHANGES ---
+
         LoginResponse loginResponse = GSON.fromJson(response.payload, LoginResponse.class);
         clientState.setToken(loginResponse.token);
         return loginResponse;
-        // --- END OF CHANGES ---
     }
 
     public LoginResponse login(String username, String password) throws Exception {

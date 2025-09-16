@@ -7,9 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Length-prefixed (big-endian int32) UTF-8 JSON frames.
- */
+
 public final class MessageCodec {
     private MessageCodec() {}
 
@@ -27,7 +25,7 @@ public final class MessageCodec {
         try {
             len = dis.readInt();
         } catch (IOException e) {
-            throw e; // socket closed/stream ended
+            throw e;
         }
         if (len < 0 || len > (16 * 1024 * 1024)) throw new IOException("Invalid frame length: " + len);
         byte[] buf = new byte[len];

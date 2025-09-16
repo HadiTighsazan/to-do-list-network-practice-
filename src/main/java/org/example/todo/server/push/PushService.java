@@ -12,7 +12,6 @@ import java.net.InetAddress;
 import java.time.Instant;
 import java.util.Collection;
 
-/** High-level push API used by services. */
 public class PushService {
     private static final Logger log = LoggerFactory.getLogger(PushService.class);
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();

@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import static org.example.todo.server.protocol.ProtocolJson.GSON;
 
-/** Per-connection handler (Phase 5) with push subscribe/unsubscribe & task routes. */
 public class TcpClientHandler implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(TcpClientHandler.class);
 
@@ -35,7 +34,12 @@ public class TcpClientHandler implements Runnable {
     private final String connectionKey = UUID.randomUUID().toString();
 
     public TcpClientHandler(Socket socket, UserService userService, AuthService authService, BoardService boardService, TaskService taskService, PushService push) {
-        this.socket = socket; this.userService = userService; this.authService = authService; this.boardService = boardService; this.taskService = taskService; this.push = push;
+        this.socket = socket;
+        this.userService = userService;
+        this.authService = authService;
+        this.boardService = boardService;
+        this.taskService = taskService;
+        this.push = push;
     }
 
     @Override
@@ -85,12 +89,13 @@ public class TcpClientHandler implements Runnable {
             case "view_board" -> handleViewBoard(env);
 
             case "delete_board" -> handleDeleteBoard(env);
-            // tasks
+
+
             case "add_task" -> handleAddTask(env);
             case "list_tasks" -> handleListTasks(env);
             case "update_task_status" -> handleUpdateTaskStatus(env);
             case "delete_task" -> handleDeleteTask(env);
-            // push
+
             case "subscribe_board" -> handleSubscribeBoard(env);
             case "unsubscribe_board" -> handleUnsubscribeBoard(env);
 
@@ -103,14 +108,12 @@ public class TcpClientHandler implements Runnable {
         if (req == null || req.username == null || req.password == null)
             throw new AppException("VALIDATION_ERROR", "username/password required");
 
-        // --- START OF CHANGES ---
         var regResult = userService.register(req.username, req.password.toCharArray());
         LoginResponse resp = new LoginResponse();
         resp.token = regResult.token();
         resp.expiresAt = regResult.expiresAt();
         resp.user = new UserView(regResult.user().getId(), regResult.user().getUsername(), regResult.user().getCreatedAt());
         return ok(env, GSON.toJsonTree(resp).getAsJsonObject());
-        // --- END OF CHANGES ---
     }
     private Envelope handleDeleteBoard(Envelope env) throws SQLException {
         var ac = authService.authenticate(requireToken(env));
@@ -251,12 +254,18 @@ public class TcpClientHandler implements Runnable {
     }
 
     private static String requireToken(Envelope env) {
-        if (env.token == null || env.token.isBlank()) throw new SecurityException("Token missing");
+        if (env.token == null || env.token.isBlank())
+            throw new SecurityException("Token missing");
         return env.token;
     }
 
     private static Envelope ok(Envelope req, JsonObject payload) {
-        Envelope e = new Envelope(); e.type = "response"; e.reqId = req.reqId; e.action = req.action; e.payload = payload; return e;
+        Envelope e = new Envelope();
+        e.type = "response";
+        e.reqId = req.reqId;
+        e.action = req.action;
+        e.payload = payload;
+        return e;
     }
 
     private static Envelope error(String reqId, String code, String message) {
@@ -269,6 +278,10 @@ public class TcpClientHandler implements Runnable {
         return new TaskView(t.getId(), t.getBoardId(), t.getTitle(), t.getDescription(),
                 toClientStatus(t.getStatus()), toClientPriority(t.getPriority()), t.getDueDate(), t.getCreatedAt());
     }
-    private static String toClientStatus(String s) { return switch (s) { case "IN_PROGRESS" -> "inProgress"; case "DONE" -> "done"; default -> "todo"; }; }
-    private static String toClientPriority(String s) { return switch (s) { case "LOW" -> "low"; case "HIGH" -> "high"; default -> "medium"; }; }
+    private static String toClientStatus(String s) {
+        return switch (s) {
+            case "IN_PROGRESS" -> "inProgress"; case "DONE" -> "done"; default -> "todo"; }; }
+    private static String toClientPriority(String s) {
+        return switch (s) {
+            case "LOW" -> "low"; case "HIGH" -> "high"; default -> "medium"; }; }
 }

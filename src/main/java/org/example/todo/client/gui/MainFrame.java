@@ -17,40 +17,34 @@ public class MainFrame extends JFrame {
 
     private final ClientApi api;
     private final ClientState state;
-    // --- START OF CHANGES ---
+
     private final TcpClient tcp;
     private final UdpListener udp;
-    // --- END OF CHANGES ---
 
     private final DashboardPanel dashboardPanel;
     private final BoardViewPanel boardViewPanel;
     private final LoginPanel loginPanel;
 
-    // Panel Names
     public static final String LOGIN_PANEL = "LoginPanel";
     public static final String DASHBOARD_PANEL = "DashboardPanel";
     public static final String BOARD_VIEW_PANEL = "BoardViewPanel";
 
-    // --- START OF CHANGES ---
-    // Modified constructor to accept closable resources
+
     public MainFrame(ClientApi api, ClientState state, TcpClient tcp, UdpListener udp) {
         this.api = api;
         this.state = state;
         this.tcp = tcp;
         this.udp = udp;
-        // --- END OF CHANGES ---
 
         setTitle("Todo List Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
 
-        // Create panels
         loginPanel = new LoginPanel(this, api);
         dashboardPanel = new DashboardPanel(this, api);
         boardViewPanel = new BoardViewPanel(this, api, state);
 
-        // Setup notification handler
         NotificationHandler notificationHandler = new NotificationHandler(this, state, boardViewPanel);
         udp.addListener(notificationHandler);
 
@@ -60,13 +54,11 @@ public class MainFrame extends JFrame {
 
         add(mainPanel);
 
-        // --- START OF CHANGES ---
-        // Enhanced window listener to properly close network resources on exit
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 try {
-                    // Perform graceful logout/unsubscribe if logged in
                     if (state.getToken().isPresent()) {
                         if (state.getCurrentBoard().isPresent()) {
                             api.unsubscribeFromBoard(state.getCurrentBoard().get(), udp.getLocalPort());
@@ -76,7 +68,6 @@ public class MainFrame extends JFrame {
                 } catch (Exception ex) {
                     System.err.println("Exception during pre-shutdown cleanup: " + ex.getMessage());
                 } finally {
-                    // Always try to close the main connections
                     try {
                         System.out.println("Closing TCP connection...");
                         tcp.close();
@@ -93,7 +84,6 @@ public class MainFrame extends JFrame {
                 super.windowClosing(e);
             }
         });
-        // --- END OF CHANGES ---
 
         showPanel(LOGIN_PANEL);
     }

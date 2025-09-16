@@ -56,10 +56,8 @@ public class BoardService {
             throw AppException.auth("دسترسی غیرمجاز: فقط مالک می‌تواند بورد را حذف کند");
         }
         boards.delete(boardId);
-        // Note: Associated members and tasks are deleted automatically by the database
-        // thanks to "ON DELETE CASCADE" in the schema.
+
         if (push != null) {
-            // Optional: You could implement a push notification for board deletion if needed.
         }
     }
     public static class BoardView {

@@ -11,10 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-/**
- * Step 0/1 bootstrap: initializes config, DB, schema, and core services.
- * Networking will be added in Step 2.
- */
+
 public final class ServerBootstrap {
     private static final Logger log = LoggerFactory.getLogger(ServerBootstrap.class);
 
@@ -25,7 +22,6 @@ public final class ServerBootstrap {
         DataSourceProvider dsp = new DataSourceProvider(cfg);
         new SchemaMigrator(dsp).ensureSchema();
 
-        // Core services ready (for future wiring in Step 2)
         PasswordHasher hasher = new PasswordHasher();
         JwtService jwt = new JwtService(cfg.getJwtSecret());
         UserRepository userRepo = new UserRepository(dsp);

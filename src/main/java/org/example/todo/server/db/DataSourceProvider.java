@@ -9,10 +9,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-/**
- * Step 1: Simple provider for JDBC connections.
- * For SQLite, it's safe to open per-operation connections (SQLite is file-based).
- */
+
 public class DataSourceProvider {
     private static final Logger log = LoggerFactory.getLogger(DataSourceProvider.class);
 

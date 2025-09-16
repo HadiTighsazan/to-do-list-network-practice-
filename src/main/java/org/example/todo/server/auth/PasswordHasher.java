@@ -6,9 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
-/**
- * Step 1: PBKDF2WithHmacSHA256 password hasher.
- */
+
 public class PasswordHasher {
     private static final String ALGO = "PBKDF2WithHmacSHA256";
     private static final int DEFAULT_ITER = 100_000;

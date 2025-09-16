@@ -11,9 +11,7 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Step 1: Minimal JWT (HS256). No external jwt lib; uses Gson for JSON.
- */
+
 public class JwtService {
     private static final Gson GSON = new Gson();
     private static final Base64.Encoder B64_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();

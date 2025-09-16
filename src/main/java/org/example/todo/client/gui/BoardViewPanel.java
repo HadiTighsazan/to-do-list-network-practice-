@@ -24,11 +24,9 @@ public class BoardViewPanel extends JPanel {
     private final DefaultListModel<BoardMemberView> memberListModel = new DefaultListModel<>();
     private final JList<BoardMemberView> memberList = new JList<>(memberListModel);
 
-    // --- START OF CHANGES ---
     private final JComboBox<String> sortBox = new JComboBox<>(new String[]{"Creation Date", "Due Date", "Priority"});
     private final JComboBox<String> orderBox = new JComboBox<>(new String[]{"Ascending", "Descending"});
     private final JComboBox<String> statusFilterBox = new JComboBox<>(new String[]{"All Statuses", "Todo", "In Progress", "Done"});
-    // --- END OF CHANGES ---
 
     public BoardViewPanel(MainFrame mainFrame, ClientApi api, ClientState state) {
         this.mainFrame = mainFrame;
@@ -38,7 +36,6 @@ public class BoardViewPanel extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Header
         JPanel header = new JPanel(new BorderLayout());
         boardTitleLabel.setFont(new Font("Serif", Font.BOLD, 20));
         header.add(boardTitleLabel, BorderLayout.WEST);
@@ -46,16 +43,15 @@ public class BoardViewPanel extends JPanel {
         header.add(backButton, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
-        // Main content split pane
+
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setResizeWeight(0.7);
         add(splitPane, BorderLayout.CENTER);
 
-        // Tasks Panel
         JPanel tasksPanel = new JPanel(new BorderLayout(5, 5));
 
-        // --- START OF CHANGES ---
-        // Filters and Sort Controls Panel
+
+
         JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controlsPanel.add(new JLabel("Filter by Status:"));
         controlsPanel.add(statusFilterBox);
@@ -69,12 +65,11 @@ public class BoardViewPanel extends JPanel {
         tasksHeaderPanel.add(new JLabel("Tasks"), BorderLayout.WEST);
         tasksHeaderPanel.add(controlsPanel, BorderLayout.EAST);
         tasksPanel.add(tasksHeaderPanel, BorderLayout.NORTH);
-        // --- END OF CHANGES ---
+
 
         taskList.setCellRenderer(new TaskRenderer());
         tasksPanel.add(new JScrollPane(taskList), BorderLayout.CENTER);
 
-        // Task Actions
         JPanel taskActions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton addTaskBtn = new JButton("Add Task");
         JButton updateStatusBtn = new JButton("Update Status");
@@ -85,7 +80,6 @@ public class BoardViewPanel extends JPanel {
         tasksPanel.add(taskActions, BorderLayout.SOUTH);
         splitPane.setLeftComponent(tasksPanel);
 
-        // Members Panel
         JPanel membersPanel = new JPanel(new BorderLayout(5, 5));
         membersPanel.add(new JLabel("Members"), BorderLayout.NORTH);
         memberList.setCellRenderer(new DefaultListCellRenderer() {
@@ -103,15 +97,12 @@ public class BoardViewPanel extends JPanel {
         membersPanel.add(addMemberBtn, BorderLayout.SOUTH);
         splitPane.setRightComponent(membersPanel);
 
-        // Action Listeners
         backButton.addActionListener(e -> mainFrame.showDashboard());
         addTaskBtn.addActionListener(e -> addTask());
         addMemberBtn.addActionListener(e -> addMember());
         updateStatusBtn.addActionListener(e -> updateTaskStatus());
         deleteTaskBtn.addActionListener(e -> deleteTask());
-        // --- START OF CHANGES ---
         applyFiltersButton.addActionListener(e -> loadTasks());
-        // --- END OF CHANGES ---
     }
 
     public void loadBoard(String boardId) {
@@ -121,7 +112,6 @@ public class BoardViewPanel extends JPanel {
         new SwingWorker<ViewBoardResponse, Void>() {
             @Override
             protected ViewBoardResponse doInBackground() throws Exception {
-                // This call remains to get board details and members
                 return api.viewBoard(boardId);
             }
 
@@ -134,7 +124,6 @@ public class BoardViewPanel extends JPanel {
                     memberListModel.clear();
                     memberListModel.addAll(response.members);
 
-                    // Now separately load tasks with default filters
                     loadTasks();
 
                 } catch (Exception e) {
@@ -148,13 +137,11 @@ public class BoardViewPanel extends JPanel {
     public void loadTasks() {
         if (currentBoardId == null) return;
 
-        // --- START OF CHANGES ---
-        // Build filter and sort objects from UI components
+
         JsonObject filters = new JsonObject();
         String selectedStatus = (String) statusFilterBox.getSelectedItem();
         if (selectedStatus != null && !selectedStatus.equals("All Statuses")) {
             JsonArray statusArray = new JsonArray();
-            // Convert GUI text to protocol-friendly status
             String protocolStatus = switch (selectedStatus) {
                 case "In Progress" -> "inProgress";
                 case "Done" -> "done";
@@ -179,12 +166,10 @@ public class BoardViewPanel extends JPanel {
         if (sortOrder != null) {
             sort.addProperty("order", sortOrder.equals("Ascending") ? "asc" : "desc");
         }
-        // --- END OF CHANGES ---
 
         new SwingWorker<List<TaskView>, Void>() {
             @Override
             protected List<TaskView> doInBackground() throws Exception {
-                // Pass the constructed filter and sort objects to the API
                 return api.listTasks(currentBoardId, filters, sort).tasks;
             }
             @Override
@@ -200,7 +185,6 @@ public class BoardViewPanel extends JPanel {
     }
 
     private void addTask() {
-        // A simple dialog for adding a task
         JTextField titleField = new JTextField();
         JTextField descField = new JTextField();
         JComboBox<String> priorityBox = new JComboBox<>(new String[]{"low", "medium", "high"});

@@ -3,9 +3,7 @@ package org.example.todo.server.app;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-/**
- * Step 0: Central configuration for server ports, DB URL, JWT secret, token TTL, etc.
- */
+
 public final class ServerConfig {
     private final int tcpPort;
     private final int udpPort;

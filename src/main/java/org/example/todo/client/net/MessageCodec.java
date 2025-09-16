@@ -7,9 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Same framing as server: 4-byte big-endian length + UTF-8 JSON.
- */
+
 public final class MessageCodec {
     private MessageCodec() {}
 

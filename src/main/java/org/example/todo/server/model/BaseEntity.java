@@ -1,11 +1,9 @@
 package org.example.todo.server.model;
 
-/**
- * Common fields for persisted entities.
- */
+
 public abstract class BaseEntity {
-    protected String id;       // UUID string
-    protected long createdAt;  // epoch millis UTC
+    protected String id;
+    protected long createdAt;
 
     protected BaseEntity() {}
 

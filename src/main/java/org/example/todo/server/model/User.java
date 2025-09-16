@@ -2,8 +2,8 @@ package org.example.todo.server.model;
 
 public class User extends BaseEntity {
     private String username;
-    private String passwordHash; // Base64(PBKDF2)
-    private String passwordSalt; // Base64
+    private String passwordHash;
+    private String passwordSalt;
 
     public User() {}
 

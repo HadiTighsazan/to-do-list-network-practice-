@@ -3,7 +3,7 @@ package org.example.todo.server.model;
 public class BoardMember {
     private String boardId;
     private String userId;
-    private String role; // OWNER | MEMBER
+    private String role;
     private long createdAt;
 
     public BoardMember() {}

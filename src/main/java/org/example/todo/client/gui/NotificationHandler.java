@@ -23,10 +23,8 @@ public class NotificationHandler implements PushNotificationListener {
             String event = payload.get("event").getAsString();
             String boardId = payload.get("boardId").getAsString();
 
-            // Show a popup notification
             JOptionPane.showMessageDialog(mainFrame, "Received notification: " + event, "Push Notification", JOptionPane.INFORMATION_MESSAGE);
 
-            // If the user is currently viewing the affected board, refresh the task list
             state.getCurrentBoard().ifPresent(currentBoardId -> {
                 if (currentBoardId.equals(boardId)) {
                     boardViewPanel.loadTasks();

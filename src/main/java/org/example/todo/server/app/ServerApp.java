@@ -34,7 +34,6 @@ public class ServerApp {
         BoardRepository boardRepo = new BoardRepository(dsp);
         MembershipRepository membershipRepo = new MembershipRepository(dsp);
 
-        // Push infra (UDP fanout)
         SubscriptionRegistry registry = new SubscriptionRegistry();
         UdpPushServer udp = new UdpPushServer(cfg.getUdpPort());
         PushService push = new PushService(registry, udp);

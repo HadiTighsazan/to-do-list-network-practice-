@@ -21,8 +21,6 @@ public class ClientMain {
         System.out.println("═══════════════════════════════════════════");
         System.out.printf("Connecting to %s:%d ...%n", host, port);
 
-        // --- START OF CHANGES ---
-        // REMOVED try-with-resources to manage connection lifecycle manually for GUI
         TcpClient tcp = null;
         UdpListener udp = null;
         try {
@@ -41,10 +39,9 @@ public class ClientMain {
 
             if (useGui) {
                 System.out.println("Starting in GUI mode...");
-                // Pass resources to the GUI to be managed and closed there
                 GuiMain.start(api, state, tcp, udp);
             } else {
-                // CLI mode manages its own lifecycle
+
                 try {
                     new CommandLoop(api, state, udp).run();
                 } finally {
@@ -53,10 +50,8 @@ public class ClientMain {
                     udp.close();
                 }
             }
-            // --- END OF CHANGES ---
         } catch (Exception e) {
             System.err.println("Failed to connect or run client: " + e.getMessage());
-            // Ensure resources are closed on startup failure
             try { if (tcp != null) tcp.close(); } catch (IOException ignored) {}
             try { if (udp != null) udp.close(); } catch (Exception ignored) {}
             System.exit(1);

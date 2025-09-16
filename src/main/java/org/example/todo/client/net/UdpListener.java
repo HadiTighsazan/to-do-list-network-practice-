@@ -62,7 +62,6 @@ public class UdpListener implements Runnable, Closeable {
             if (!obj.has("type") || !"push".equals(obj.get("type").getAsString())) {
                 return;
             }
-            // Notify all registered listeners
             for (PushNotificationListener listener : listeners) {
                 listener.onPushNotification(obj);
             }

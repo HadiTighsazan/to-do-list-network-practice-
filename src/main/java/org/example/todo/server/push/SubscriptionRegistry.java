@@ -4,13 +4,12 @@ import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Thread-safe in-memory registry of board subscriptions. */
 public class SubscriptionRegistry {
     public static final class Subscriber {
-        public final String connectionKey; // unique per TCP connection
+        public final String connectionKey;
         public final String userId;
         public final InetAddress address;
-        public final int port; // client's UDP port
+        public final int port;
         public Subscriber(String connectionKey, String userId, InetAddress address, int port) {
             this.connectionKey = connectionKey; this.userId = userId; this.address = address; this.port = port;
         }
@@ -22,9 +21,7 @@ public class SubscriptionRegistry {
         }
     }
 
-    // boardId -> Set<Subscriber>
     private final Map<String, Set<Subscriber>> byBoard = new ConcurrentHashMap<>();
-    // connectionKey -> Set<Subscriber>
     private final Map<String, Set<Subscriber>> byConn = new ConcurrentHashMap<>();
 
     public void subscribe(String boardId, Subscriber sub) {

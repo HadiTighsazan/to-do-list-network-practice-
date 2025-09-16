@@ -18,9 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Step 1: Business logic for register/login/logout.
- */
+
 public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
@@ -55,14 +53,12 @@ public class UserService {
         users.insert(u);
         log.info("User registered: {}", username);
 
-        // --- START OF CHANGES ---
-        // Automatically log the user in after registration
+
         long exp = now + config.getTokenTtl().toMillis();
         String token = jwt.createToken(u.getId(), u.getUsername(), now, exp);
         String jti = jwt.getJti(token);
         sessions.insert(new Session(jti, u.getId(), exp, now));
         return new LoginResult(token, u, exp);
-        // --- END OF CHANGES ---
     }
 
     public LoginResult login(String username, char[] password) throws SQLException {

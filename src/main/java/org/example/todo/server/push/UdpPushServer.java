@@ -8,7 +8,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 
-/** Simple UDP sender bound to a fixed port. */
 public class UdpPushServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(UdpPushServer.class);
 
@@ -23,7 +22,6 @@ public class UdpPushServer implements AutoCloseable {
 
     public synchronized void sendJson(InetAddress addr, int clientPort, String json) {
         byte[] data = json.getBytes(StandardCharsets.UTF_8);
-        // clamp packet size (safety)
         if (data.length > 60_000) {
             log.warn("Push too large: {} bytes. Dropping.", data.length);
             return;

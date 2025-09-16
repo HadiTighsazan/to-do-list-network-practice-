@@ -16,7 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** Thread-per-connection TCP server with TaskService+Push injection (Phase 5). */
 public class TcpServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TcpServer.class);
 

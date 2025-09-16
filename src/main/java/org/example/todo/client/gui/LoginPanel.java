@@ -25,7 +25,6 @@ public class LoginPanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
 
-        // Title
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
@@ -34,7 +33,6 @@ public class LoginPanel extends JPanel {
         titleLabel.setFont(new Font("Serif", Font.BOLD, 24));
         add(titleLabel, gbc);
 
-        // Username
         gbc.gridy++;
         gbc.gridwidth = 1;
         gbc.anchor = GridBagConstraints.EAST;
@@ -43,7 +41,6 @@ public class LoginPanel extends JPanel {
         gbc.anchor = GridBagConstraints.WEST;
         add(usernameField, gbc);
 
-        // Password
         gbc.gridy++;
         gbc.gridx = 0;
         gbc.anchor = GridBagConstraints.EAST;
@@ -52,7 +49,6 @@ public class LoginPanel extends JPanel {
         gbc.anchor = GridBagConstraints.WEST;
         add(passwordField, gbc);
 
-        // Buttons
         gbc.gridy++;
         gbc.gridx = 0;
         gbc.gridwidth = 2;
@@ -62,12 +58,10 @@ public class LoginPanel extends JPanel {
         buttonPanel.add(registerButton);
         add(buttonPanel, gbc);
 
-        // Status Label
         gbc.gridy++;
         statusLabel.setForeground(Color.GRAY);
         add(statusLabel, gbc);
 
-        // Action Listeners
         loginButton.addActionListener(this::performLogin);
         registerButton.addActionListener(this::performRegister);
     }
@@ -103,11 +97,9 @@ public class LoginPanel extends JPanel {
                 try {
                     get();
                     statusLabel.setText("Login successful!");
-                    // FIX: Call showDashboard() to also load the boards data
                     mainFrame.showDashboard();
                 } catch (Exception ex) {
                     statusLabel.setText("Login failed.");
-                    // Check for cause, as the primary exception is from SwingWorker
                     String errorMessage = (ex.getCause() != null) ? ex.getCause().getMessage() : ex.getMessage();
                     JOptionPane.showMessageDialog(mainFrame, "Login failed: " + errorMessage, "Login Error", JOptionPane.ERROR_MESSAGE);
                 } finally {
@@ -130,7 +122,6 @@ public class LoginPanel extends JPanel {
         statusLabel.setText("Registering...");
         setUIEnabled(false);
 
-        // --- START OF CHANGES ---
         new SwingWorker<LoginResponse, Void>() {
             @Override
             protected LoginResponse doInBackground() throws Exception {

@@ -6,9 +6,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Objects;
 
-/**
- * Validates a token: signature, expiry, and jti presence in sessions (not revoked).
- */
+
 public class AuthService {
     public static class AuthContext {
         public final String userId; public final String username; public final String jti;
