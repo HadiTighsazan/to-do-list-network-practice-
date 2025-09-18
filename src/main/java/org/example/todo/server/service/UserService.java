@@ -48,10 +48,11 @@ public class UserService {
         byte[] salt = hasher.generateSalt();
         byte[] hash = hasher.hash(password, salt, hasher.defaultIterations());
         long now = Instant.now().toEpochMilli();
-        User u = new User(UUID.randomUUID().toString(), now, username,
+        String id = UUID.randomUUID().toString();
+        User u = new User(id, now, username,
                 PasswordHasher.toBase64(hash), PasswordHasher.toBase64(salt));
         users.insert(u);
-        log.info("User registered: {}", username);
+        log.info("User registered: {} , id: {}", username,id);
 
 
         long exp = now + config.getTokenTtl().toMillis();
@@ -69,6 +70,8 @@ public class UserService {
         byte[] expected = PasswordHasher.fromBase64(u.getPasswordHash());
         boolean ok = hasher.verify(password, salt, expected, hasher.defaultIterations());
         if (!ok) throw AppException.auth("رمز عبور اشتباه است");
+
+        log.info("User registered: {} , id: {}", username,u.getId());
 
         long now = Instant.now().toEpochMilli();
         long exp = now + config.getTokenTtl().toMillis();

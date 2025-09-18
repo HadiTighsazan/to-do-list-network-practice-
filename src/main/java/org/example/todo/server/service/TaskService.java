@@ -75,7 +75,7 @@ public class TaskService {
     }
 
     public static String normalizePriority(String s) {
-        if (s == null) return "MEDIUM"; // default
+        if (s == null) return "MEDIUM";
         String x = s.trim().toUpperCase(Locale.ROOT);
         return switch (x) {
             case "LOW" -> "LOW";

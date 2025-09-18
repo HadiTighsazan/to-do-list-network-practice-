@@ -29,7 +29,12 @@ public class CommandLoop implements Runnable, PushNotificationListener {
             String prompt = state.getCurrentBoard().map(b -> "todo["+b.substring(0, 8)+"]> ").orElse("todo> ");
             System.out.print(prompt);
             String line;
-            try { if (!scanner.hasNextLine()) break; line = scanner.nextLine(); } catch (Exception e) { break; }
+            try {
+                if (!scanner.hasNextLine())
+                    break;
+                line = scanner.nextLine();
+            }
+            catch (Exception e) { break; }
             line = line.trim(); if (line.isEmpty()) continue;
             List<String> args = parseArgs(line);
             String cmd = args.get(0).toLowerCase(Locale.ROOT);
@@ -67,7 +72,7 @@ public class CommandLoop implements Runnable, PushNotificationListener {
     private void doLogin(List<String> a) throws Exception {
         if (a.size() < 3) { System.out.println("usage: login <username> <password>"); return; }
         var loginResponse = api.login(a.get(1), a.get(2));
-        System.out.println("logged in. user: " + loginResponse.user.username);
+        System.out.println("logged in. user: " + loginResponse.user.username + "id: "+loginResponse.user.id);
     }
 
     private void doLogout() throws Exception {
